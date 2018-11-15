@@ -31,6 +31,7 @@ except ImportError:
 
 # Much of the following code is adapted from the USNO's "novas.c".
 
+_microseconds_to_milliseconds = (1 / 1000)
 _half_second = 0.5 / DAY_S
 _half_millisecond = 0.5e-3 / DAY_S
 _half_microsecond = 0.5e-6 / DAY_S
@@ -693,9 +694,21 @@ class Time(object):
         return self.tt == other_time.tt
 
     def __sub__(self, other_time):
+        if isinstance(other_time, timedelta):
+            year, month, day, hour, minute, second = self._utc_tuple(
+                _half_millisecond)
+            other_millis = (other_time.microseconds * _microseconds_to_milliseconds)
+            second = second - (other_millis + other_time.seconds)
+            return self.ts.utc(year, month, day, hour, minute, second)
         if not isinstance(other_time, Time):
             return NotImplemented
         return self.tt - other_time.tt
+
+    def __add__(self, other_time):
+        if isinstance(other_time, timedelta):
+            return self.__sub__(-other_time)
+        return NotImplemented
+
 
 def julian_day(year, month=1, day=1):
     """Given a proleptic Gregorian calendar date, return a Julian day int."""
